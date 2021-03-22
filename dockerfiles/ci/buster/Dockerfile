@@ -81,23 +81,18 @@ RUN set -eux; \
     \
 # Allow nginx to be run as non-root for tests
     chown -R circleci:circleci /var/log/nginx/ /var/lib/nginx/; \
-# JSON parser
-    export JQ_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/jq-latest"; \
-    curl --silent --show-error --location --fail --retry 3 --output /usr/bin/jq $JQ_URL; \
-    chmod +x /usr/bin/jq; \
-    jq --version; \
-    \
-# Docker
-    export COMPOSE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/docker-compose-latest"; \
-    curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL; \
-    chmod +x /usr/bin/docker-compose; \
-    docker-compose version; \
-    \
-    export DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/dockerize-latest.tar.gz"; \
-    curl --silent --show-error --location --fail --retry 3 --output /tmp/dockerize-linux-amd64.tar.gz $DOCKERIZE_URL; \
-    tar -C /usr/local/bin -xzvf /tmp/dockerize-linux-amd64.tar.gz; \
-    rm -rf /tmp/dockerize-linux-amd64.tar.gz; \
-    dockerize --version;
+# Install CMake
+    cd /tmp && curl -OL https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz; \
+    (echo "139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15 cmake-3.19.6-Linux-x86_64.tar.gz" | sha256sum -c -); \
+    mkdir -p /opt/cmake/3.19.6 && cd /opt/cmake/3.19.6; \
+    tar -xf /tmp/cmake-3.19.6-Linux-x86_64.tar.gz --strip 1; \
+# Install Catch2
+    cd /tmp && curl -OL https://github.com/catchorg/Catch2/archive/v2.13.4.tar.gz; \
+    (echo "e7eb70b3d0ac2ed7dcf14563ad808740c29e628edde99e973adad373a2b5e4df v2.13.4.tar.gz" | sha256sum -c -); \
+    mkdir catch2 && cd catch2; \
+    tar -xf ../v2.13.4.tar.gz --strip 1; \
+    /opt/cmake/3.19.6/bin/cmake -Bbuild -H. -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/opt/catch2; \
+    /opt/cmake/3.19.6/bin/cmake --build build/ --target install;
 
 # Apache config
 ENV APACHE_CONFDIR /etc/apache2

@@ -46,6 +46,8 @@
             <file name="components/sapi/sapi.h" role="src" />
             <file name="components/string_view/string_view.c" role="src" />
             <file name="components/string_view/string_view.h" role="src" />
+            <file name="components/zend_abstract_interface/zend_abstract_interface.c" role="src" />
+            <file name="components/zend_abstract_interface/zend_abstract_interface.h" role="src" />
 
             <!-- Shared -->
             <file name="ext/DatadogArena/arena.c" role="src" />

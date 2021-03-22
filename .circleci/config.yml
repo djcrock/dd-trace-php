@@ -964,6 +964,7 @@ jobs:
               $toolchain \
               -DCMAKE_BUILD_TYPE=Debug \
               -DBUILD_COMPONENTS_TESTING=ON \
+              -DPHP_PREFIX_PATH=$(php-config --prefix) \
               ~/datadog/components
             make -j all
             make test
@@ -983,6 +984,7 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE=~/datadog/cmake/ubsan.cmake \
               -DCMAKE_BUILD_TYPE=Debug \
               -DBUILD_COMPONENTS_TESTING=ON \
+              -DPHP_PREFIX_PATH=$(php-config --prefix) \
               ~/datadog/components
             make -j all
             make test
@@ -1155,11 +1157,12 @@ workflows:
             parameters:
               docker_image:
                 # Don't need PHP, just basic toolchain
+                # TODO Test ZAI separately? -DPHP_PREFIX_PATH=$(php-config --prefix)
                 - "datadog/dd-trace-ci:centos-6"
                 - "datadog/dd-trace-ci:alpine"
                 - "datadog/dd-trace-ci:buster"
               cmake_version:
-                - "3.14.7"
+                - "3.18.3"
                 - "3.19.6"
               catch2_version:
                 - "2.13.4"
