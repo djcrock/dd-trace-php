@@ -1,5 +1,5 @@
 extern "C" {
-#include "zend_abstract_interface/zend_abstract_interface.h"
+#include "functions/functions.h"
 }
 
 #include <sapi/embed/php_embed.h>

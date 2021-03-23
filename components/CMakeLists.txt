@@ -1,9 +1,7 @@
 #[[ Need CMake 3.14 so that `install(TARGETS)` uses better defaults, which
     saves us from repeating configuration in every file (and must be the same).
-
-    Need CMake 3.18 for using 'REQUIRED' with find_library().
 ]]
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.14)
 
 project(datadog-php-components
   VERSION 0.1.0
@@ -40,8 +38,6 @@ add_subdirectory(string_view)
 add_subdirectory(sapi)
 
 add_subdirectory(container_id)
-
-add_subdirectory(zend_abstract_interface)
 
 install(EXPORT DatadogPhpComponentsTargets
   FILE DatadogPhpComponentsTargets.cmake

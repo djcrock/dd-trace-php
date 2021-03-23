@@ -44,7 +44,10 @@ if test "$PHP_DDTRACE" != "no"; then
     components/container_id/container_id.c \
     components/sapi/sapi.c \
     components/string_view/string_view.c \
-    components/zend_abstract_interface/zend_abstract_interface.c \
+  "
+
+  ZAI_SOURCES="\
+    zend_abstract_interface/functions/functions.c \
   "
 
   PHP_VERSION_ID=$($PHP_CONFIG --vernum)
@@ -195,7 +198,7 @@ if test "$PHP_DDTRACE" != "no"; then
     "
   fi
 
-  PHP_NEW_EXTENSION(ddtrace, $DD_TRACE_COMPONENT_SOURCES $DD_TRACE_VENDOR_SOURCES $DD_TRACE_PHP_SOURCES, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -Wall -std=gnu11)
+  PHP_NEW_EXTENSION(ddtrace, $DD_TRACE_COMPONENT_SOURCES $ZAI_SOURCES $DD_TRACE_VENDOR_SOURCES $DD_TRACE_PHP_SOURCES, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -Wall -std=gnu11)
   PHP_ADD_BUILD_DIR($ext_builddir/ext, 1)
 
   PHP_CHECK_LIBRARY(rt, shm_open,
@@ -216,7 +219,10 @@ if test "$PHP_DDTRACE" != "no"; then
   PHP_ADD_BUILD_DIR([$ext_builddir/components/container_id])
   PHP_ADD_BUILD_DIR([$ext_builddir/components/sapi])
   PHP_ADD_BUILD_DIR([$ext_builddir/components/string_view])
-  PHP_ADD_BUILD_DIR([$ext_builddir/components/zend_abstract_interface])
+
+  PHP_ADD_INCLUDE([$ext_srcdir/zend_abstract_interface])
+  PHP_ADD_BUILD_DIR([$ext_builddir/zend_abstract_interface])
+  PHP_ADD_BUILD_DIR([$ext_builddir/zend_abstract_interface/functions])
 
   PHP_ADD_INCLUDE([$ext_srcdir/ext/vendor])
   PHP_ADD_BUILD_DIR([$ext_builddir/ext/vendor])

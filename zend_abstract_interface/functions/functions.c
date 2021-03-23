@@ -1,5 +1,6 @@
-#include "zend_abstract_interface.h"
+#include "functions.h"
 
+#if PHP_VERSION_ID >= 70000
 bool zai_call_function(zend_string *name, zval *retval, int argc, ...) {
     zend_fcall_info fci = {
         .size = sizeof(zend_fcall_info),
@@ -39,3 +40,4 @@ bool zai_call_function(zend_string *name, zval *retval, int argc, ...) {
 
     return result == SUCCESS;
 }
+#endif
