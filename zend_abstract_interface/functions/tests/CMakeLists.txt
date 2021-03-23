@@ -1,7 +1,7 @@
 add_executable(functions functions.cc)
 
 target_link_libraries(functions
-  PUBLIC catch2_main Zai::Functions
+  PUBLIC catch2_main Zai::Sapi Zai::Functions
 )
 
 file(

@@ -45,6 +45,9 @@ include_directories(
   "${PHP_PREFIX_PATH}/include/php/sapi"
 )
 
+add_subdirectory(zai_sapi)
+
+# All tests depend on zai_sapi
 add_subdirectory(functions)
 
 install(EXPORT ZendAbstractInterfaceTargets

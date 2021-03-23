@@ -48,6 +48,7 @@ if test "$PHP_DDTRACE" != "no"; then
 
   ZAI_SOURCES="\
     zend_abstract_interface/functions/functions.c \
+    zend_abstract_interface/zai_sapi/zai_sapi.c \
   "
 
   PHP_VERSION_ID=$($PHP_CONFIG --vernum)
@@ -223,6 +224,7 @@ if test "$PHP_DDTRACE" != "no"; then
   PHP_ADD_INCLUDE([$ext_srcdir/zend_abstract_interface])
   PHP_ADD_BUILD_DIR([$ext_builddir/zend_abstract_interface])
   PHP_ADD_BUILD_DIR([$ext_builddir/zend_abstract_interface/functions])
+  PHP_ADD_BUILD_DIR([$ext_builddir/zend_abstract_interface/zai_sapi])
 
   PHP_ADD_INCLUDE([$ext_srcdir/ext/vendor])
   PHP_ADD_BUILD_DIR([$ext_builddir/ext/vendor])

@@ -1,101 +1,10 @@
 extern "C" {
 #include "functions/functions.h"
-}
 
-#include <sapi/embed/php_embed.h>
+#include "zai_sapi/zai_sapi.h"
+}
 
 #include <catch2/catch.hpp>
-
-static const char default_ini[] =
-    "html_errors=0\n"
-    "implicit_flush=1\n"
-    "output_buffering=0\n"
-    "max_execution_time=0\n"
-    "max_input_time=-1\n"
-    "memory_limit=-1\n"
-    "\0";
-
-static void zai_test_ini_alloc(void) {
-    php_embed_module.ini_entries = (char *)malloc(sizeof default_ini);
-    memcpy(php_embed_module.ini_entries, default_ini, sizeof default_ini);
-}
-
-static void zai_test_ini_free(void) {
-    if (php_embed_module.ini_entries) {
-        free(php_embed_module.ini_entries);
-        php_embed_module.ini_entries = NULL;
-    }
-}
-
-/* We have our own version of php_embed_init() for the following reasons:
- * 1) We are able to provide our own INI entries.
- * 2) We are able to provide our own SAPI functions.
- * https://github.com/php/php-src/blob/PHP-8.0.3/sapi/embed/php_embed.c#L151-L212
- */
-static bool zai_test_embed_init(void) {
-#ifdef ZTS
-    php_tsrm_startup();
-#endif
-
-    zend_signal_startup();
-
-    sapi_startup(&php_embed_module);
-
-    zai_test_ini_alloc();
-
-    /* Don't load any INI files (equivalent to running the CLI SAPI with '-n').
-     * This will prevent inadvertently loading any shared-library extensions
-     * that are not built with ASan. It also gives us a consistent clean slate
-     * of INI settings.
-     */
-    php_embed_module.php_ini_ignore = 1;
-
-    /* TODO: When we want to expose a function to userland for testing purposes
-     * (e.g. DDTrace\Testing\trigger_error()), we can add them as custom SAPI
-     * functions here. These functions will only exist in the embed SAPI for
-     * testing at the C unit test level and will not be shipped as a public
-     * userland API in the PHP tracer.
-     */
-    // php_embed_module.additional_functions = additional_functions;
-
-    if (php_embed_module.startup(&php_embed_module) == FAILURE) {
-        zai_test_ini_free();
-        return false;
-    }
-
-    zend_llist global_vars;
-    zend_llist_init(&global_vars, sizeof(char *), NULL, 0);
-
-    /* Do not chdir to the script's directory (equivalent to running the CLI
-     * SAPI with '-C').
-     */
-    SG(options) |= SAPI_OPTION_NO_CHDIR;
-
-    if (php_request_startup() == FAILURE) {
-        php_module_shutdown();
-        zai_test_ini_free();
-        return false;
-    }
-
-    SG(headers_sent) = 1;
-    SG(request_info).no_headers = 1;
-    php_register_variable("PHP_SELF", "-", NULL);
-
-    return true;
-}
-
-/* Based on php_embed_shutdown()
- * https://github.com/php/php-src/blob/PHP-8.0.3/sapi/embed/php_embed.c#L214-L226
- */
-static void zai_test_embed_shutdown(void) {
-    php_request_shutdown((void *)0);
-    php_module_shutdown();
-    sapi_shutdown();
-#ifdef ZTS
-    tsrm_shutdown();
-#endif
-    zai_test_ini_free();
-}
 
 static bool zai_test_execute_script(const char *file) {
     bool result = false;
@@ -111,7 +20,7 @@ static bool zai_test_execute_script(const char *file) {
 }
 
 TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
-    if (!zai_test_embed_init()) REQUIRE(false);
+    if (!zai_sapi_spinup()) REQUIRE(false);
     zend_first_try {
         SECTION("call an internal PHP function") {
             zend_string *name = zend_string_init(ZEND_STRL("mt_rand"), 0);
@@ -136,14 +45,14 @@ TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
         }
     }
     zend_end_try();
-    zai_test_embed_shutdown();
+    zai_sapi_spindown();
 }
 
 TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
-    if (!zai_test_embed_init()) REQUIRE(false);
+    if (!zai_sapi_spinup()) REQUIRE(false);
     zend_first_try {
         if (!zai_test_execute_script("./stubs/basic.php")) {
-            zai_test_embed_shutdown();
+            zai_sapi_spindown();
             REQUIRE(false);
         }
 
@@ -170,11 +79,11 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
         }
     }
     zend_end_try();
-    zai_test_embed_shutdown();
+    zai_sapi_spindown();
 }
 
 TEST_CASE("call function error cases", "[zai]") {
-    if (!zai_test_embed_init()) REQUIRE(false);
+    if (!zai_sapi_spinup()) REQUIRE(false);
     zend_first_try {
         SECTION("NULL function name") {
             zval retval;
@@ -193,5 +102,5 @@ TEST_CASE("call function error cases", "[zai]") {
         }
     }
     zend_end_try();
-    zai_test_embed_shutdown();
+    zai_sapi_spindown();
 }
