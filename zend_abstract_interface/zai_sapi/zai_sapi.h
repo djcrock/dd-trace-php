@@ -4,7 +4,7 @@
 #include <main/php.h>
 #include <stdbool.h>
 
-#ifdef ZTS
+#if PHP_VERSION_ID >= 70000 && defined(ZTS)
 ZEND_TSRMLS_CACHE_EXTERN()
 #endif
 

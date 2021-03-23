@@ -23,7 +23,11 @@ static int zai_deactivate(void) {
 
 static inline size_t zai_single_write(const char *str, size_t str_length) {
 #ifdef PHP_WRITE_STDOUT
+#if PHP_VERSION_ID >= 70000
     zend_long ret;
+#else
+    long ret;
+#endif
 
     ret = write(STDOUT_FILENO, str, str_length);
     if (ret <= 0) return 0;
@@ -69,10 +73,16 @@ static char *zai_read_cookies(void) { return NULL; }
 
 static void zai_register_variables(zval *track_vars_array) { php_import_environment_variables(track_vars_array); }
 
+#if PHP_VERSION_ID >= 80000
 static void zai_log_message(const char *message, int syslog_type_int) {
     UNUSED(syslog_type_int);
     fprintf(stderr, "%s\n", message);
 }
+#else
+static void zai_log_message(char *message) {
+    fprintf(stderr, "%s\n", message);
+}
+#endif
 
 static sapi_module_struct zai_module = {"zai",                     /* name */
                                         "Zend Abstract Interface", /* pretty name */
@@ -130,7 +140,9 @@ bool zai_sapi_spinup(void) {
     php_tsrm_startup();
 #endif
 
+#ifdef ZEND_SIGNALS
     zend_signal_startup();
+#endif
 
     sapi_startup(&zai_module);
 
