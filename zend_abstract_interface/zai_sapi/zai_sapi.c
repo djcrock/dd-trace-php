@@ -1,10 +1,14 @@
 /* ZAI SAPI is a fork the the embed SAPI:
  * https://github.com/php/php-src/blob/PHP-8.0.3/sapi/embed/php_embed.c
  *
- * We have our own SAPI so that we can provide our own INI entries and custom
- * SAPI functions for testing. It also gives us more flexibility on adding
- * entry points for fuzzing. Overall it allows us to more throughly test the
- * surface area of each component.
+ * The ZAI SAPI is designed for running tests for components that are tightly
+ * coupled to the Zend Engine.
+ *
+ * The current feature wishlist includes:
+ *   [ ] Independent control over SAPI startup, MINIT, and RINIT
+ *   [ ] Custom INI settings per process or request
+ *   [ ] Custom SAPI-level functions
+ *   [ ] Fuzzing
  */
 #include "zai_sapi.h"
 
@@ -21,32 +25,18 @@ static int zai_deactivate(void) {
     return SUCCESS;
 }
 
-static inline size_t zai_single_write(const char *str, size_t str_length) {
-#ifdef PHP_WRITE_STDOUT
-#if PHP_VERSION_ID >= 70000
-    zend_long ret;
-#else
-    long ret;
-#endif
-
-    ret = write(STDOUT_FILENO, str, str_length);
-    if (ret <= 0) return 0;
-    return ret;
-#else
-    size_t ret;
-
-    ret = fwrite(str, 1, MIN(str_length, 16384), stdout);
-    return ret;
-#endif
-}
-
+/* This is supposed to be the "unbuffered write" function for the SAPI so using
+ * a buffered function like fwrite() here I suppose is technically incorrect.
+ * But fwrite()'s buffering gives a little performance boost over write() which
+ * better serves the purposes of running many tests through the ZAI SAPI.
+ */
 static size_t zai_ub_write(const char *str, size_t str_length) {
     const char *ptr = str;
     size_t remaining = str_length;
     size_t ret;
 
     while (remaining > 0) {
-        ret = zai_single_write(ptr, remaining);
+        ret = fwrite(ptr, 1, MIN(remaining, BUFSIZ), stdout);
         if (!ret) {
             php_handle_aborted_connection();
         }
@@ -79,9 +69,7 @@ static void zai_log_message(const char *message, int syslog_type_int) {
     fprintf(stderr, "%s\n", message);
 }
 #else
-static void zai_log_message(char *message) {
-    fprintf(stderr, "%s\n", message);
-}
+static void zai_log_message(char *message) { fprintf(stderr, "%s\n", message); }
 #endif
 
 static sapi_module_struct zai_module = {"zai",                     /* name */

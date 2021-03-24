@@ -20,7 +20,8 @@ static bool zai_test_execute_script(const char *file) {
 }
 
 TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
-    if (!zai_sapi_spinup()) REQUIRE(false);
+    REQUIRE(zai_sapi_spinup());
+
     zend_first_try {
         SECTION("call an internal PHP function") {
             zend_string *name = zend_string_init(ZEND_STRL("mt_rand"), 0);
@@ -45,11 +46,13 @@ TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
         }
     }
     zend_end_try();
+
     zai_sapi_spindown();
 }
 
 TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
-    if (!zai_sapi_spinup()) REQUIRE(false);
+    REQUIRE(zai_sapi_spinup());
+
     zend_first_try {
         if (!zai_test_execute_script("./stubs/basic.php")) {
             zai_sapi_spindown();
@@ -79,11 +82,13 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
         }
     }
     zend_end_try();
+
     zai_sapi_spindown();
 }
 
 TEST_CASE("call function error cases", "[zai]") {
-    if (!zai_sapi_spinup()) REQUIRE(false);
+    REQUIRE(zai_sapi_spinup());
+
     zend_first_try {
         SECTION("NULL function name") {
             zval retval;
@@ -102,5 +107,6 @@ TEST_CASE("call function error cases", "[zai]") {
         }
     }
     zend_end_try();
+
     zai_sapi_spindown();
 }
