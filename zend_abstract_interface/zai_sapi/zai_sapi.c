@@ -12,6 +12,7 @@
  */
 #include "zai_sapi.h"
 
+#include <Zend/zend_signal.h>
 #include <main/SAPI.h>
 #include <main/php_main.h>
 #include <main/php_variables.h>
@@ -128,9 +129,7 @@ bool zai_sapi_init_sapi(void) {
     php_tsrm_startup();
 #endif
 
-#ifdef ZEND_SIGNALS
     zend_signal_startup();
-#endif
 
     sapi_startup(&zai_module);
 
