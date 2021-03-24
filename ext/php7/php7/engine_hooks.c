@@ -1079,6 +1079,25 @@ static int dd_catch_handler(zend_execute_data *execute_data) {
             zval *message = GET_PROPERTY(&obj, ZEND_STR_MESSAGE);
             const char *msg = Z_TYPE_P(message) == IS_STRING ? Z_STR_P(message)->val : "I do not know the exception";
             ddtrace_log_debugf("Message is: %s", msg);
+
+            ddtrace_span_fci *span_fci = ecalloc(1, sizeof(*span_fci));
+            span_fci->execute_data = execute_data;
+            ddtrace_open_span(span_fci);
+
+            ddtrace_span_t *span = &span_fci->span;
+
+            zval *prop_name = ddtrace_spandata_property_name(span->span_data);
+            if (prop_name && Z_TYPE_P(prop_name) == IS_NULL) {
+                zval caught_exception_name;
+                ZVAL_STRING(&caught_exception_name, "caught_exception");
+                ZVAL_COPY_VALUE(prop_name, &caught_exception_name);
+                zval_copy_ctor(prop_name);
+                zval_dtor(&caught_exception_name);
+            }
+
+            ddtrace_span_attach_exception(span_fci, EG(exception));
+            dd_trace_stop_span_time(span);
+            ddtrace_close_span();
         }
     }
 
