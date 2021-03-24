@@ -1074,11 +1074,11 @@ static int dd_catch_handler(zend_execute_data *execute_data) {
     if (ZEND_CATCH == EX(opline)->opcode) {
         zend_object *ex = EG(exception);
         if (ex) {
-            zval rv, obj;
-            ZVAL_OBJ(&obj, ex);
-            zval *message = GET_PROPERTY(&obj, ZEND_STR_MESSAGE);
-            const char *msg = Z_TYPE_P(message) == IS_STRING ? Z_STR_P(message)->val : "I do not know the exception";
-            ddtrace_log_debugf("Message is: %s", msg);
+            // zval rv, obj;
+            // ZVAL_OBJ(&obj, ex);
+            // zval *message = GET_PROPERTY(&obj, ZEND_STR_MESSAGE);
+            // const char *msg = Z_TYPE_P(message) == IS_STRING ? Z_STR_P(message)->val : "I do not know the exception";
+            // ddtrace_log_debugf("Message is: %s", msg);
 
             ddtrace_span_fci *span_fci = ecalloc(1, sizeof(*span_fci));
             span_fci->execute_data = execute_data;
