@@ -5,7 +5,7 @@
  * coupled to the Zend Engine.
  *
  * The current feature wishlist includes:
- *   [ ] Independent control over SAPI startup, MINIT, and RINIT
+ *   [x] Independent control over SAPI startup, MINIT, and RINIT
  *   [ ] Custom INI settings per process or request
  *   [ ] Custom SAPI-level functions
  *   [ ] Fuzzing
@@ -123,7 +123,7 @@ static void zai_sapi_ini_free(void) {
     }
 }
 
-bool zai_sapi_spinup(void) {
+bool zai_sapi_init_sapi(void) {
 #ifdef ZTS
     php_tsrm_startup();
 #endif
@@ -143,8 +143,7 @@ bool zai_sapi_spinup(void) {
      */
     zai_module.php_ini_ignore = 1;
 
-    /* Show phpinfo()/module info as plain text.
-     */
+    /* Show phpinfo()/module info as plain text. */
     zai_module.phpinfo_as_text = 1;
 
     /* TODO: When we want to expose a function to userland for testing purposes
@@ -155,19 +154,36 @@ bool zai_sapi_spinup(void) {
      */
     // zai_module.additional_functions = additional_functions;
 
+    return true;
+}
+
+void zai_sapi_shutdown_sapi(void) {
+    sapi_shutdown();
+#ifdef ZTS
+    tsrm_shutdown();
+#endif
+    zai_sapi_ini_free();
+}
+
+bool zai_sapi_init_modules(void) {
     if (zai_module.startup(&zai_module) == FAILURE) {
-        zai_sapi_ini_free();
+        zai_sapi_shutdown_sapi();
         return false;
     }
+    return true;
+}
 
+void zai_sapi_shutdown_modules(void) { php_module_shutdown(); }
+
+bool zai_sapi_init_request(void) {
     /* Do not chdir to the script's directory (equivalent to running the CLI
      * SAPI with '-C').
      */
     SG(options) |= SAPI_OPTION_NO_CHDIR;
 
     if (php_request_startup() == FAILURE) {
-        php_module_shutdown();
-        zai_sapi_ini_free();
+        zai_sapi_shutdown_modules();
+        zai_sapi_shutdown_sapi();
         return false;
     }
 
@@ -178,12 +194,12 @@ bool zai_sapi_spinup(void) {
     return true;
 }
 
+void zai_sapi_shutdown_request(void) { php_request_shutdown((void *)0); }
+
+bool zai_sapi_spinup(void) { return zai_sapi_init_sapi() && zai_sapi_init_modules() && zai_sapi_init_request(); }
+
 void zai_sapi_spindown(void) {
-    php_request_shutdown((void *)0);
-    php_module_shutdown();
-    sapi_shutdown();
-#ifdef ZTS
-    tsrm_shutdown();
-#endif
-    zai_sapi_ini_free();
+    zai_sapi_shutdown_request();
+    zai_sapi_shutdown_modules();
+    zai_sapi_shutdown_sapi();
 }
