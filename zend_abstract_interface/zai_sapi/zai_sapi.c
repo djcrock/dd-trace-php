@@ -20,9 +20,9 @@
 
 #define UNUSED(x) (void)(x)
 
-static int zai_startup(sapi_module_struct *sapi_module) { return php_module_startup(sapi_module, NULL, 0); }
+static int zs_startup(sapi_module_struct *sapi_module) { return php_module_startup(sapi_module, NULL, 0); }
 
-static int zai_deactivate(void) {
+static int zs_deactivate(void) {
     fflush(stdout);
     return SUCCESS;
 }
@@ -32,7 +32,7 @@ static int zai_deactivate(void) {
  * But fwrite()'s buffering gives a little performance boost over write() which
  * better serves the purposes of running many tests through the ZAI SAPI.
  */
-static size_t zai_ub_write(const char *str, size_t str_length) {
+static size_t zs_ub_write(const char *str, size_t str_length) {
     const char *ptr = str;
     size_t remaining = str_length;
     size_t ret;
@@ -49,58 +49,58 @@ static size_t zai_ub_write(const char *str, size_t str_length) {
     return str_length;
 }
 
-static void zai_flush(void *server_context) {
+static void zs_flush(void *server_context) {
     UNUSED(server_context);
     if (fflush(stdout) == EOF) {
         php_handle_aborted_connection();
     }
 }
 
-static void zai_send_header(sapi_header_struct *sapi_header, void *server_context) {
+static void zs_send_header(sapi_header_struct *sapi_header, void *server_context) {
     UNUSED(sapi_header);
     UNUSED(server_context);
 }
 
-static char *zai_read_cookies(void) { return NULL; }
+static char *zs_read_cookies(void) { return NULL; }
 
-static void zai_register_variables(zval *track_vars_array) { php_import_environment_variables(track_vars_array); }
+static void zs_register_variables(zval *track_vars_array) { php_import_environment_variables(track_vars_array); }
 
 #if PHP_VERSION_ID >= 80000
-static void zai_log_message(const char *message, int syslog_type_int) {
+static void zs_log_message(const char *message, int syslog_type_int) {
     UNUSED(syslog_type_int);
     fprintf(stderr, "%s\n", message);
 }
 #else
-static void zai_log_message(char *message) { fprintf(stderr, "%s\n", message); }
+static void zs_log_message(char *message) { fprintf(stderr, "%s\n", message); }
 #endif
 
 static sapi_module_struct zai_module = {"zai",                     /* name */
                                         "Zend Abstract Interface", /* pretty name */
 
-                                        zai_startup,                 /* startup */
+                                        zs_startup,                  /* startup */
                                         php_module_shutdown_wrapper, /* shutdown */
 
-                                        NULL,           /* activate */
-                                        zai_deactivate, /* deactivate */
+                                        NULL,          /* activate */
+                                        zs_deactivate, /* deactivate */
 
-                                        zai_ub_write, /* unbuffered write */
-                                        zai_flush,    /* flush */
-                                        NULL,         /* get uid */
-                                        NULL,         /* getenv */
+                                        zs_ub_write, /* unbuffered write */
+                                        zs_flush,    /* flush */
+                                        NULL,        /* get uid */
+                                        NULL,        /* getenv */
 
                                         php_error, /* error handler */
 
-                                        NULL,            /* header handler */
-                                        NULL,            /* send headers handler */
-                                        zai_send_header, /* send header handler */
+                                        NULL,           /* header handler */
+                                        NULL,           /* send headers handler */
+                                        zs_send_header, /* send header handler */
 
-                                        NULL,             /* read POST data */
-                                        zai_read_cookies, /* read Cookies */
+                                        NULL,            /* read POST data */
+                                        zs_read_cookies, /* read Cookies */
 
-                                        zai_register_variables, /* register server variables */
-                                        zai_log_message,        /* Log message */
-                                        NULL,                   /* Get request time */
-                                        NULL,                   /* Child terminate */
+                                        zs_register_variables, /* register server variables */
+                                        zs_log_message,        /* Log message */
+                                        NULL,                  /* Get request time */
+                                        NULL,                  /* Child terminate */
 
                                         STANDARD_SAPI_MODULE_PROPERTIES};
 
@@ -116,7 +116,7 @@ static const char default_ini[] =
 static size_t ini_entries_len = 0;
 
 // TODO Alloc memory with an arena
-static size_t zai_sapi_default_ini_alloc(char **ini_entries) {
+static size_t zs_default_ini_alloc(char **ini_entries) {
     size_t len = sizeof default_ini - 1;
 
     *ini_entries = (char *)malloc(len + 1);
@@ -128,14 +128,15 @@ static size_t zai_sapi_default_ini_alloc(char **ini_entries) {
     return len;
 }
 
-static void zai_sapi_ini_free(char **ini_entries) {
+static void zs_ini_free(char **ini_entries) {
     if (*ini_entries) {
         free(*ini_entries);
         *ini_entries = NULL;
     }
 }
 
-static size_t zai_sapi_ini_entries_realloc_append(char **ini_entries, size_t entries_len, const char *key, const char *value) {
+static size_t zs_ini_entries_realloc_append(char **ini_entries, size_t entries_len, const char *key,
+                                            const char *value) {
     size_t len;
 
     if (*ini_entries == NULL) {
@@ -167,26 +168,40 @@ static size_t zai_sapi_ini_entries_realloc_append(char **ini_entries, size_t ent
  * startup occurs.
  */
 bool zai_sapi_append_system_ini_entry(const char *key, const char *value) {
-    size_t len = zai_sapi_ini_entries_realloc_append(&zai_module.ini_entries, ini_entries_len, key, value);
+    size_t len = zs_ini_entries_realloc_append(&zai_module.ini_entries, ini_entries_len, key, value);
     if (len <= ini_entries_len) {
         /* Play it safe and free if writing failed. */
-        zai_sapi_ini_free(&zai_module.ini_entries);
+        zs_ini_free(&zai_module.ini_entries);
         return false;
     }
     ini_entries_len = len;
     return true;
 }
 
-bool zai_sapi_init_sapi(void) {
+bool zai_sapi_sinit(void) {
 #ifdef ZTS
     php_tsrm_startup();
 #endif
 
+#if PHP_VERSION_ID >= 70000 && defined(ZEND_SIGNALS)
     zend_signal_startup();
+#endif
 
+    /* Initialize the SAPI globals (memset to '0'), and set up reentrancy. */
     sapi_startup(&zai_module);
 
-    ini_entries_len = zai_sapi_default_ini_alloc(&zai_module.ini_entries);
+    /* Do not chdir to the script's directory (equivalent to running the CLI
+     * SAPI with '-C').
+     */
+    SG(options) |= SAPI_OPTION_NO_CHDIR;
+
+    /* Allocate the initial SAPI INI settings. Append new INI settings to this
+     * with zai_sapi_append_system_ini_entry() before MINIT is run.
+     */
+    ini_entries_len = zs_default_ini_alloc(&zai_module.ini_entries);
+    if (ini_entries_len == 0) {
+        return false;
+    }
 
     /* Don't load any INI files (equivalent to running the CLI SAPI with '-n').
      * This will prevent inadvertently loading any shared-library extensions
@@ -209,33 +224,26 @@ bool zai_sapi_init_sapi(void) {
     return true;
 }
 
-void zai_sapi_shutdown_sapi(void) {
+void zai_sapi_sshutdown(void) {
     sapi_shutdown();
 #ifdef ZTS
     tsrm_shutdown();
 #endif
-    zai_sapi_ini_free(&zai_module.ini_entries);
+    zs_ini_free(&zai_module.ini_entries);
 }
 
-bool zai_sapi_init_modules(void) {
+bool zai_sapi_minit(void) {
     if (zai_module.startup(&zai_module) == FAILURE) {
-        zai_sapi_shutdown_sapi();
+        zai_sapi_sshutdown();
         return false;
     }
     return true;
 }
 
-void zai_sapi_shutdown_modules(void) { php_module_shutdown(); }
+void zai_sapi_mshutdown(void) { php_module_shutdown(); }
 
-bool zai_sapi_init_request(void) {
-    /* Do not chdir to the script's directory (equivalent to running the CLI
-     * SAPI with '-C').
-     */
-    SG(options) |= SAPI_OPTION_NO_CHDIR;
-
+bool zai_sapi_rinit(void) {
     if (php_request_startup() == FAILURE) {
-        zai_sapi_shutdown_modules();
-        zai_sapi_shutdown_sapi();
         return false;
     }
 
@@ -246,12 +254,12 @@ bool zai_sapi_init_request(void) {
     return true;
 }
 
-void zai_sapi_shutdown_request(void) { php_request_shutdown((void *)0); }
+void zai_sapi_rshutdown(void) { php_request_shutdown((void *)0); }
 
-bool zai_sapi_spinup(void) { return zai_sapi_init_sapi() && zai_sapi_init_modules() && zai_sapi_init_request(); }
+bool zai_sapi_spinup(void) { return zai_sapi_sinit() && zai_sapi_minit() && zai_sapi_rinit(); }
 
 void zai_sapi_spindown(void) {
-    zai_sapi_shutdown_request();
-    zai_sapi_shutdown_modules();
-    zai_sapi_shutdown_sapi();
+    zai_sapi_rshutdown();
+    zai_sapi_mshutdown();
+    zai_sapi_sshutdown();
 }

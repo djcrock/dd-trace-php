@@ -19,13 +19,14 @@ static bool zai_test_execute_script(const char *file) {
     return result;
 }
 
-TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
+TEST_CASE("call internal functions", "[zai]") {
     REQUIRE(zai_sapi_spinup());
 
     zend_first_try {
         SECTION("call an internal PHP function") {
             zend_string *name = zend_string_init(ZEND_STRL("mt_rand"), 0);
             zval retval;
+
             bool result = zai_call_function(name, &retval, 0);
 
             REQUIRE(result == true);
@@ -37,6 +38,7 @@ TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
         SECTION("call a function that does not exist") {
             zend_string *name = zend_string_init(ZEND_STRL("i_do_not_exist"), 0);
             zval retval;
+
             bool result = zai_call_function(name, &retval, 0);
 
             REQUIRE(result == false);
@@ -50,7 +52,7 @@ TEST_CASE("call internal functions with the embed SAPI", "[zai]") {
     zai_sapi_spindown();
 }
 
-TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
+TEST_CASE("call userland functions", "[zai]") {
     REQUIRE(zai_sapi_spinup());
 
     zend_first_try {
@@ -62,6 +64,7 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
         SECTION("call an userland PHP function") {
             zend_string *name = zend_string_init(ZEND_STRL("zendabstractinterface\\returns_true"), 0);
             zval retval;
+
             bool result = zai_call_function(name, &retval, 0);
 
             REQUIRE(result == true);
@@ -73,6 +76,7 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
         SECTION("call a function that does not exist") {
             zend_string *name = zend_string_init(ZEND_STRL("zendabstractinterface\\i_do_not_exist"), 0);
             zval retval;
+
             bool result = zai_call_function(name, &retval, 0);
 
             REQUIRE(result == false);
@@ -90,12 +94,12 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
  * https://www.php.net/manual/en/ini.core.php#ini.disable-functions
  */
 TEST_CASE("call a function that has been disabled with disable_functions", "[zai]") {
-    REQUIRE(zai_sapi_init_sapi());
+    REQUIRE(zai_sapi_sinit());
 
     REQUIRE(zai_sapi_append_system_ini_entry("disable_functions", "mt_rand"));
 
-    REQUIRE(zai_sapi_init_modules());
-    REQUIRE(zai_sapi_init_request());
+    REQUIRE(zai_sapi_minit());
+    REQUIRE(zai_sapi_rinit());
 
     zend_first_try {
         zend_string *name = zend_string_init(ZEND_STRL("mt_rand"), 0);
@@ -110,9 +114,9 @@ TEST_CASE("call a function that has been disabled with disable_functions", "[zai
     }
     zend_end_try();
 
-    zai_sapi_shutdown_request();
-    zai_sapi_shutdown_modules();
-    zai_sapi_shutdown_sapi();
+    zai_sapi_rshutdown();
+    zai_sapi_mshutdown();
+    zai_sapi_sshutdown();
 }
 
 TEST_CASE("call function error cases", "[zai]") {
@@ -121,6 +125,7 @@ TEST_CASE("call function error cases", "[zai]") {
     zend_first_try {
         SECTION("NULL function name") {
             zval retval;
+
             bool result = zai_call_function(NULL, &retval, 0);
 
             REQUIRE(result == false);
@@ -128,6 +133,7 @@ TEST_CASE("call function error cases", "[zai]") {
 
         SECTION("NULL return value") {
             zend_string *name = zend_string_init(ZEND_STRL("foo_function"), 0);
+
             bool result = zai_call_function(name, NULL, 0);
 
             REQUIRE(result == false);
