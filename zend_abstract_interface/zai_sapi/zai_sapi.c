@@ -6,7 +6,8 @@
  *
  * The current feature wishlist includes:
  *   [x] Independent control over SAPI startup, MINIT, and RINIT
- *   [ ] Custom INI settings per process or request
+ *   [x] Custom INI settings per process
+ *   [ ] Custom INI settings per request
  *   [ ] Custom SAPI-level functions
  *   [ ] Fuzzing
  */
@@ -112,16 +113,68 @@ static const char default_ini[] =
     "memory_limit=-1\n"
     "\0";
 
-static void zai_sapi_ini_alloc(void) {
-    zai_module.ini_entries = (char *)malloc(sizeof default_ini);
-    memcpy(zai_module.ini_entries, default_ini, sizeof default_ini);
+static size_t ini_entries_len = 0;
+
+// TODO Alloc memory with an arena
+static size_t zai_sapi_default_ini_alloc(char **ini_entries) {
+    size_t len = sizeof default_ini - 1;
+
+    *ini_entries = (char *)malloc(len + 1);
+    if (*ini_entries == NULL) {
+        return 0;
+    }
+    memcpy(*ini_entries, default_ini, len + 1);
+
+    return len;
 }
 
-static void zai_sapi_ini_free(void) {
-    if (zai_module.ini_entries) {
-        free(zai_module.ini_entries);
-        zai_module.ini_entries = NULL;
+static void zai_sapi_ini_free(char **ini_entries) {
+    if (*ini_entries) {
+        free(*ini_entries);
+        *ini_entries = NULL;
     }
+}
+
+static size_t zai_sapi_ini_entries_realloc_append(char **ini_entries, size_t entries_len, const char *key, const char *value) {
+    size_t len;
+
+    if (*ini_entries == NULL) {
+        return 0;
+    }
+
+    len = strlen(key) + strlen(value) + (sizeof("=\n") - 1);
+
+    char *new_entries = (char *)realloc(*ini_entries, entries_len + len + 1);
+    if (new_entries == NULL) {
+        return 0;
+    }
+
+    *ini_entries = new_entries;
+
+    char *ptr = new_entries + entries_len - 1;
+    int written_len = snprintf(ptr, len + 1, "%s=%s\n", key, value);
+    return (written_len != len) ? 0 : entries_len + len;
+}
+
+/* Ideally to modify INI settings we would take advantage of PHP's
+ * zend_alter_ini_entry_*() API here, but unfortunately for PHP_INI_SYSTEM
+ * settings, we cannot. The 'configuration_hash' hash table is allocated in
+ * php_init_config() and the SAPI 'ini_entries' are parsed and added to the
+ * hash table. This happens during php_module_startup() so if we want to set an
+ * INI setting that is used very early in the startup process (i.e.
+ * 'disable_functions' which is read as part of module startup), then we must
+ * reallocate our C string of 'ini_entries' and append to it before module
+ * startup occurs.
+ */
+bool zai_sapi_append_system_ini_entry(const char *key, const char *value) {
+    size_t len = zai_sapi_ini_entries_realloc_append(&zai_module.ini_entries, ini_entries_len, key, value);
+    if (len <= ini_entries_len) {
+        /* Play it safe and free if writing failed. */
+        zai_sapi_ini_free(&zai_module.ini_entries);
+        return false;
+    }
+    ini_entries_len = len;
+    return true;
 }
 
 bool zai_sapi_init_sapi(void) {
@@ -133,7 +186,7 @@ bool zai_sapi_init_sapi(void) {
 
     sapi_startup(&zai_module);
 
-    zai_sapi_ini_alloc();
+    ini_entries_len = zai_sapi_default_ini_alloc(&zai_module.ini_entries);
 
     /* Don't load any INI files (equivalent to running the CLI SAPI with '-n').
      * This will prevent inadvertently loading any shared-library extensions
@@ -161,7 +214,7 @@ void zai_sapi_shutdown_sapi(void) {
 #ifdef ZTS
     tsrm_shutdown();
 #endif
-    zai_sapi_ini_free();
+    zai_sapi_ini_free(&zai_module.ini_entries);
 }
 
 bool zai_sapi_init_modules(void) {

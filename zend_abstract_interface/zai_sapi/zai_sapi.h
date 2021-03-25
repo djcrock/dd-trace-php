@@ -22,4 +22,14 @@ void zai_sapi_shutdown_modules(void);
 bool zai_sapi_init_request(void);
 void zai_sapi_shutdown_request(void);
 
+/* Appends a ZEND_INI_SYSTEM entry to the existing settings.
+ *
+ *   zai_sapi_append_system_ini_entry("extension", "ddtrace.so");
+ *
+ * This must be called:
+ * - After SINIT 'zai_sapi_init_sapi()'
+ * - Before MINIT 'zai_sapi_init_modules()'
+ */
+bool zai_sapi_append_system_ini_entry(const char *key, const char *value);
+
 #endif  // ZAI_SAPI_H

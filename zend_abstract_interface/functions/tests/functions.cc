@@ -86,6 +86,35 @@ TEST_CASE("call userland functions with the embed SAPI", "[zai]") {
     zai_sapi_spindown();
 }
 
+/* The 'disable_functions' INI setting only disables internal functions.
+ * https://www.php.net/manual/en/ini.core.php#ini.disable-functions
+ */
+TEST_CASE("call a function that has been disabled with disable_functions", "[zai]") {
+    REQUIRE(zai_sapi_init_sapi());
+
+    REQUIRE(zai_sapi_append_system_ini_entry("disable_functions", "mt_rand"));
+
+    REQUIRE(zai_sapi_init_modules());
+    REQUIRE(zai_sapi_init_request());
+
+    zend_first_try {
+        zend_string *name = zend_string_init(ZEND_STRL("mt_rand"), 0);
+        zval retval;
+
+        bool result = zai_call_function(name, &retval, 0);
+
+        REQUIRE(result == false);
+        REQUIRE(Z_TYPE(retval) == IS_UNDEF);
+
+        zend_string_release(name);
+    }
+    zend_end_try();
+
+    zai_sapi_shutdown_request();
+    zai_sapi_shutdown_modules();
+    zai_sapi_shutdown_sapi();
+}
+
 TEST_CASE("call function error cases", "[zai]") {
     REQUIRE(zai_sapi_spinup());
 
