@@ -4,9 +4,9 @@
 #include <php.h>
 
 #if PHP_VERSION_ID < 50500
-int ddtrace_flush_tracer(void);
-#else
-ZEND_RESULT_CODE ddtrace_flush_tracer(void);
+#include "compatibility.h"  // For 'ZEND_RESULT_CODE'
 #endif
+
+ZEND_RESULT_CODE ddtrace_flush_tracer(TSRMLS_D);
 
 #endif  // DDTRACE_AUTO_FLUSH_H

@@ -53,6 +53,10 @@
 #define ZEND_ARG_VARIADIC_INFO(pass_by_ref, name)
 #endif
 
+#if PHP_VERSION_ID < 50500
+typedef int ZEND_RESULT_CODE;
+#endif
+
 typedef zval ddtrace_exception_t;
 
 #endif  // DD_COMPATIBILITY_H
