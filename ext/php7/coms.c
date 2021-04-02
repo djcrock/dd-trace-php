@@ -986,6 +986,11 @@ bool ddtrace_coms_on_pid_change(void) {
     return false;
 }
 
+void ddtrace_coms_shutdown(void) {
+    struct _writer_loop_data_t *writer = _dd_get_writer();
+    _dd_writer_set_shutdown_state(writer);
+}
+
 bool ddtrace_coms_trigger_writer_flush(void) {
     struct _writer_loop_data_t *writer = _dd_get_writer();
     if (writer->thread) {

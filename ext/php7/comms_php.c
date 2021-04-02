@@ -8,6 +8,10 @@
 ZEND_EXTERN_MODULE_GLOBALS(ddtrace);
 
 bool ddtrace_send_traces_via_thread(size_t num_traces, char *payload, size_t payload_len) {
+    if (DDTRACE_G(disable)) {
+        return true;
+    }
+
     if (num_traces != 1) {
         // The background sender is capable of sending exactly one trace atm
         return false;

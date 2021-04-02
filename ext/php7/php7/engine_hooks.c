@@ -125,7 +125,7 @@ static ZEND_RESULT_CODE dd_sandbox_fci_call(zend_execute_data *call, zend_fcall_
 #define DDTRACE_NOT_TRACED ((void *)1)
 
 static bool dd_should_trace_helper(zend_execute_data *call, zend_function *fbc, ddtrace_dispatch_t **dispatch_ptr) {
-    if (DDTRACE_G(class_lookup) == NULL || DDTRACE_G(function_lookup) == NULL) {
+    if (DDTRACE_G(disable) || DDTRACE_G(class_lookup) == NULL || DDTRACE_G(function_lookup) == NULL) {
         return false;
     }
 
@@ -200,7 +200,7 @@ static bool dd_should_trace_runtime(ddtrace_dispatch_t *dispatch) {
 static bool dd_should_trace_call(zend_execute_data *call, ddtrace_dispatch_t **dispatch) {
     zend_function *fbc = call->func;
 
-    if (DDTRACE_G(disable_in_current_request)) {
+    if (DDTRACE_G(disable) || DDTRACE_G(disable_in_current_request)) {
         return false;
     }
 

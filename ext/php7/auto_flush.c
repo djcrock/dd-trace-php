@@ -7,6 +7,10 @@
 #include "engine_hooks.h"  // for ddtrace_backup_error_handling
 
 ZEND_RESULT_CODE ddtrace_flush_tracer() {
+    if (DDTRACE_G(disable)) {
+        return SUCCESS;
+    }
+
     zval tracer, retval;
     zend_class_entry *GlobalTracer_ce = ddtrace_lookup_ce(ZEND_STRL("DDTrace\\GlobalTracer"));
     bool success = true;

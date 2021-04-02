@@ -48,6 +48,9 @@ bool ddtrace_coms_flush_shutdown_writer_synchronous(void);
 bool ddtrace_coms_synchronous_flush(uint32_t timeout);
 bool ddtrace_coms_on_pid_change(void);
 
+// Shuts down the writer. After this function is called, stacks will neither be read nor freed anymore.
+void ddtrace_coms_shutdown(void);
+
 /* exposed for testing {{{ */
 uint32_t ddtrace_coms_test_writers(void);
 uint32_t ddtrace_coms_test_consumer(void);
