@@ -643,6 +643,8 @@ test_integrations_mysqli:
 test_integrations_mongo:
 	$(MAKE) test_scenario_default
 	$(call run_tests,tests/Integrations/Mongo)
+test_integrations_cntl:
+	$(call run_tests,tests/Integrations/PCNTL)
 test_integrations_pdo:
 	$(MAKE) test_scenario_default
 	$(call run_tests,tests/Integrations/PDO)
